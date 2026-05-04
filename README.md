@@ -14,7 +14,7 @@ jobs:
     steps:
       - uses: actions/checkout@v2
 
-      - uses: cupcakearmy/confluence-markdown-sync@v1
+      - uses: lunar-energy/confluence-markdown-sync@v1
         with:
           from: './README.md'
           to: '123456' # The confluence page id where to write the output
@@ -62,7 +62,7 @@ For now images will not be uploaded [see ticket](https://github.com/cupcakearmy/
 1. Clone the repo
 2. Install [act](https://github.com/nektos/act)
 3. Create the same config in the repo folder as in the getting started section above.
-4. Change `uses: cupcakearmy/confluence-markdown-sync` -> `uses: ./`
+4. Change `uses: lunar-energy/confluence-markdown-sync` -> `uses: ./`
 5. Create an example markdown file `Some.md` and set it in the config `from: './Some.md'`
 6. Run locally `act -b`
 
