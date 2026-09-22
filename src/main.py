@@ -40,43 +40,42 @@ base_url = envs['cloud']
 if '://' in base_url:  # It's a full URL
     # Remove trailing slash if present
     base_url = base_url.rstrip('/')
-    url = f"{base_url}/wiki/rest/api/content/{envs['to']}"
 else:  # It's a subdomain
-    url = f"https://{base_url}.atlassian.net/wiki/rest/api/content/{envs['to']}"
+    base_url = f'https://{base_url}.atlassian.net'
+url = f"{base_url}/wiki/api/v2/pages/{envs['to']}"
+
+
+def fail(what, response):
+    print(f'Confluence rejected the {what}: '
+          f'{response.status_code} {response.reason}')
+    print(response.text)
+    exit(1)
+
 
 response = requests.get(url, auth=auth, headers=headers)
 if not response.ok:
-    print(f'Confluence rejected the read: {response.status_code} {response.reason}')
-    print(response.text)
-    exit(1)
+    fail('read', response)
 current = response.json()
 
 html = markdown(md, extensions=[GithubFlavoredMarkdownExtension()])
 content = {
-    'id': current['id'],
-    'type': current['type'],
+    'id': str(current['id']),
+    'status': current['status'],
     'title': current['title'],
-    'version': {'number': current['version']['number'] + 1},
     'body': {
-        'storage': {
-            'value': html,
-            'representation': 'storage'
-        }
-    }
+        'representation': 'storage',
+        'value': html
+    },
+    'version': {'number': current['version']['number'] + 1}
 }
 
 response = requests.put(url, json=content, auth=auth, headers=headers)
 if not response.ok:
-    print(f'Confluence rejected the update: {response.status_code} {response.reason}')
-    print(response.text)
-    exit(1)
+    fail('update', response)
 
 updated = response.json()
-links = updated.get('_links')
-if not links:
-    print('Update returned an unexpected payload:')
-    print(response.text)
-    exit(1)
-
-link = links['base'] + links['webui']
-print(f'Uploaded content successfully to page {link}')
+webui = updated.get('_links', {}).get('webui')
+if webui:
+    print(f'Uploaded content successfully to page {base_url}/wiki{webui}')
+else:
+    print(f"Uploaded content successfully to page {envs['to']}")

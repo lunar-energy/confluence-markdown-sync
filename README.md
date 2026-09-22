@@ -19,13 +19,40 @@ jobs:
           from: './README.md'
           to: '123456' # The confluence page id where to write the output
           cloud: <my-confluence-cloud-id>
-          user: <my.user@example.org>
+          user: <my.user@example.org> # omit for a service account token
           token: <my-token>
 ```
 
 ## Authentication
 
-Uses basic auth for the rest api.
+Uses the Confluence REST API **v2** (`/wiki/api/v2/pages`).
+
+Two credential styles are supported:
+
+- **Basic auth** — supply `user` (the email that owns the token) and `token`.
+- **Bearer** — omit `user`. The token is sent as `Authorization: Bearer <token>`.
+  This is what Atlassian **service account** tokens require, as those accounts
+  have no email/password pair.
+
+### Scoped and service account tokens
+
+Scoped tokens (including every service account token) only work against the
+platform gateway, never your site URL. Pass the gateway as `cloud`:
+
+```yml
+cloud: 'https://api.atlassian.com/ex/confluence/<cloudId>'
+```
+
+Your `cloudId` is at `https://<subdomain>.atlassian.net/_edge/tenant_info`.
+
+Because this action calls v2, a scoped token needs the **granular** scopes —
+`read:page:confluence` and `write:page:confluence`. The classic scopes
+(`read:confluence-content.all`, `write:confluence-content`) are for the v1 API
+and will fail with `401 Unauthorized; scope does not match`. Scopes cannot be
+edited after a token is created; a different set means a new token.
+
+Scopes are not permissions: the account must also hold Confluence product
+access and **Pages: Add** on the target space, or the update returns 403.
 
 - `cloud`: Can be either:
   - A subdomain (`acme` for Atlassian hosted instances (e.g. `https://acme.atlassian.net`))
