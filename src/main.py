@@ -15,12 +15,23 @@ if not workspace:
     exit(1)
 
 envs: Dict[str, str] = {}
-for key in ['from', 'to', 'cloud', 'user', 'token']:
+for key in ['from', 'to', 'cloud', 'token']:
     value = environ.get(f'INPUT_{key.upper()}')
     if not value:
         print(f'Missing value for {key}')
         exit(1)
     envs[key] = value
+
+# `user` is optional. With it, authenticate as that account over basic auth.
+# Without it, send the token as a bearer credential — what Atlassian service
+# account tokens require, since those accounts have no email/password pair.
+user = environ.get('INPUT_USER')
+if user:
+    auth = (user, envs['token'])
+    headers = {}
+else:
+    auth = None
+    headers = {'Authorization': f"Bearer {envs['token']}"}
 
 with open(join(workspace, envs['from'])) as f:
     md = f.read()
@@ -33,8 +44,11 @@ if '://' in base_url:  # It's a full URL
 else:  # It's a subdomain
     url = f"https://{base_url}.atlassian.net/wiki/rest/api/content/{envs['to']}"
 
-response = requests.get(url, auth=(envs['user'], envs['token']))
-response.raise_for_status()
+response = requests.get(url, auth=auth, headers=headers)
+if not response.ok:
+    print(f'Confluence rejected the read: {response.status_code} {response.reason}')
+    print(response.text)
+    exit(1)
 current = response.json()
 
 html = markdown(md, extensions=[GithubFlavoredMarkdownExtension()])
@@ -51,7 +65,7 @@ content = {
     }
 }
 
-response = requests.put(url, json=content, auth=(envs['user'], envs['token']))
+response = requests.put(url, json=content, auth=auth, headers=headers)
 if not response.ok:
     print(f'Confluence rejected the update: {response.status_code} {response.reason}')
     print(response.text)

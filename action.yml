@@ -15,8 +15,10 @@ inputs:
     description: Atlassian Cloud ID
     required: true
   user:
-    description: Username of the token user
-    required: true
+    description: >
+      Email of the account owning the token, for basic auth. Omit for an
+      Atlassian service account token, which is sent as a bearer token.
+    required: false
   token:
     description: Token for the user
     required: true
