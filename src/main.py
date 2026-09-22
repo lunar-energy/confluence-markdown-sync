@@ -44,14 +44,25 @@ content = {
     'title': current['title'],
     'version': {'number': current['version']['number'] + 1},
     'body': {
-        'editor': {
+        'storage': {
             'value': html,
-            'representation': 'editor'
+            'representation': 'storage'
         }
     }
 }
 
-updated = requests.put(url, json=content, auth=(
-    envs['user'], envs['token'])).json()
-link = updated['_links']['base'] + updated['_links']['webui']
+response = requests.put(url, json=content, auth=(envs['user'], envs['token']))
+if not response.ok:
+    print(f'Confluence rejected the update: {response.status_code} {response.reason}')
+    print(response.text)
+    exit(1)
+
+updated = response.json()
+links = updated.get('_links')
+if not links:
+    print('Update returned an unexpected payload:')
+    print(response.text)
+    exit(1)
+
+link = links['base'] + links['webui']
 print(f'Uploaded content successfully to page {link}')
